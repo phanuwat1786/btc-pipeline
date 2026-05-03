@@ -10,7 +10,7 @@ btc_price_asset = Asset(name = 'btc_price',uri = 'x-market-price://btc')
 with DAG(
     dag_id = 'get_btc_price',
     start_date = pendulum.parse('2026-05-03',tz = 'Asia/Bangkok'),
-    schedule = None,
+    schedule = '@hourly',
 ) as dag :
     
     logger = logging.getLogger(__name__)
@@ -24,7 +24,7 @@ with DAG(
         response = http_hook.run(
             headers= header,
             data = {
-                {"fsym":"BTC","tsyms":"USD,THB","api_key": Variable.get(key = 'coindesk_api_key')}
+                "fsym":"BTC","tsyms":"USD,THB","api_key": Variable.get(key = 'coindesk_api_key')
             },
             extra_options={'check_response': False})
 
@@ -40,6 +40,7 @@ with DAG(
     )
     def save_btc_price(api_response:dict):
         df = pd.DataFrame([api_response])
+        df['create_at_bi'] = pendulum.now().to_datetime_string()
 
         pg_hook = PostgresHook(
             postgres_conn_id = 'pg_market_price'
